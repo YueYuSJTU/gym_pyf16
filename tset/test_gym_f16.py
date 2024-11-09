@@ -8,7 +8,7 @@ env = gymnasium.make('gym_pyf16_env/GridWorld-v0')
 
 init_obs, _ = env.reset()
 
-action = {"thrust": 2700, "elevator": 0.0, "aileron": 0.0, "rudder": 0.0}
+action = {"thrust": 2109.4, "elevator": -2.2441, "aileron": -0.0936, "rudder": 0.0945}
 
 position = []
 for i in range(3000):
@@ -26,6 +26,7 @@ ax.plot(position[0], position[1], position[2])
 ax.scatter(position[0][0], position[1][0], position[2][0], color='red', s=100, label='Start')
 ax.scatter(position[0][-1], position[1][-1], position[2][-1], color='blue', s=100, label='End')
 
+ax.set_zlim(0, 20000)
 ax.set_xlabel('North Position')
 ax.set_ylabel('East Position')
 ax.set_zlabel('Altitude')
