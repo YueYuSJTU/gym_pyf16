@@ -1,21 +1,25 @@
-import gymnasium
+import gymnasium as gym
 import gym_pyf16_env
 from gymnasium.wrappers import FlattenObservation
 import matplotlib.pyplot as plt
-import numpy as np
+from stable_baselines3 import PPO
 
 
-env = gymnasium.make('gym_pyf16_env/GridWorld-v0')
+env = gym.make('gym_pyf16_env/GridWorld-v0')
 
-init_obs, _ = env.reset()
+model = PPO("MlpPolicy", env, verbose=1)
+model.learn(total_timesteps=10_000)
 
-action = np.array([2109.4, -2.2441, -0.0936, 0.0945])
+env = model.get_env()
+obs = env.reset()
+
 
 position = []
 for i in range(3000):
-    obs, reward, terminated, _, _ = env.step(action)
-    position.append([obs[0], obs[1], obs[2]])
-    print(f"Step:{i}, position: {obs[0]}, {obs[1]}, {obs[2]}, Done: {terminated}")
+    action, _state = model.predict(obs, deterministic=True)
+    obs, reward, terminated, _ = env.step(action)
+    position.append([obs[0][0], obs[0][1], obs[0][2]])
+    # print(f"Step:{i}, position: {obs[0][0]}, {obs[0][1]}, {obs[0][2]}, Done: {terminated}")
 
 # 绘制位置关于时间的三维图像
 position = list(zip(*position))

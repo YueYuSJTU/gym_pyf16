@@ -17,37 +17,30 @@ class GridWorldEnv(gym.Env):
         self.aero_model.install("./models/f16_model/data")
         self.control_limits = self.aero_model.load_ctrl_limits()
 
-        # Observations are dictionaries with the agent's and the target's location.
-        # Each location is encoded as an element of {0, ..., `size`}^2,
-        # i.e. MultiDiscrete([size, size]).
-        self.observation_space = spaces.Dict(
-            {
-                # "agent": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                # "target": spaces.Box(0, size - 1, shape=(2,), dtype=int),
-                "npos": spaces.Box(-15000, 15000, shape=(1,), dtype=np.float32),
-                "epos": spaces.Box(-15000, 15000, shape=(1,), dtype=np.float32),
-                "altitude": spaces.Box(0, 30000, shape=(1,), dtype=np.float32),
-                "phi": spaces.Box(-np.pi, np.pi, shape=(1,), dtype=np.float32),
-                "theta": spaces.Box(-np.pi, np.pi, shape=(1,), dtype=np.float32),
-                "psi": spaces.Box(-np.pi, np.pi, shape=(1,), dtype=np.float32),
-                "velocity": spaces.Box(0, 1000, shape=(1,), dtype=np.float32),
-                "alpha": spaces.Box(-0.5*np.pi, 0.5*np.pi, shape=(1,), dtype=np.float32),
-                "beta": spaces.Box(-0.5*np.pi, 0.5*np.pi, shape=(1,), dtype=np.float32),
-                "p": spaces.Box(-np.pi, np.pi, shape=(1,), dtype=np.float32),
-                "q": spaces.Box(-np.pi, np.pi, shape=(1,), dtype=np.float32),
-                "r": spaces.Box(-np.pi, np.pi, shape=(1,), dtype=np.float32),
-            }
+        self.observation_space = spaces.Box(
+            low=np.array([
+                -15000, -15000, 0, -np.pi, -np.pi, -np.pi, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi
+            ]),
+            high=np.array([
+                15000, 15000, 30000, np.pi, np.pi, np.pi, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi
+            ]),
+            dtype=np.float32
         )
 
-        # We have 4 actions, corresponding to "right", "up", "left", "down", "right"
-        # self.action_space = spaces.Discrete(4)
-        self.action_space = spaces.Dict(
-            {
-                "thrust": spaces.Box(self.control_limits.thrust_cmd_limit_bottom, self.control_limits.thrust_cmd_limit_top, shape=(1,), dtype=np.float32),
-                "elevator": spaces.Box(self.control_limits.ele_cmd_limit_bottom, self.control_limits.ele_cmd_limit_top, shape=(1,), dtype=np.float32),
-                "aileron": spaces.Box(self.control_limits.ail_cmd_limit_bottom, self.control_limits.ail_cmd_limit_top, shape=(1,), dtype=np.float32),
-                "rudder": spaces.Box(self.control_limits.rud_cmd_limit_bottom, self.control_limits.rud_cmd_limit_top, shape=(1,), dtype=np.float32),
-            }
+        self.action_space = spaces.Box(
+            low=np.array([
+                self.control_limits.thrust_cmd_limit_bottom,
+                self.control_limits.ele_cmd_limit_bottom,
+                self.control_limits.ail_cmd_limit_bottom,
+                self.control_limits.rud_cmd_limit_bottom
+            ]),
+            high=np.array([
+                self.control_limits.thrust_cmd_limit_top,
+                self.control_limits.ele_cmd_limit_top,
+                self.control_limits.ail_cmd_limit_top,
+                self.control_limits.rud_cmd_limit_top
+            ]),
+            dtype=np.float32
         )
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -57,21 +50,7 @@ class GridWorldEnv(gym.Env):
         self.clock = None
 
     def _get_obs(self):
-        # return {"agent": self._agent_state, "target": self._target_location}
-        return {
-            "npos": self._agent_state[0:1],
-            "epos": self._agent_state[1:2],
-            "altitude": self._agent_state[2:3],
-            "phi": self._agent_state[3:4],
-            "theta": self._agent_state[4:5],
-            "psi": self._agent_state[5:6],
-            "velocity": self._agent_state[6:7],
-            "alpha": self._agent_state[7:8],
-            "beta": self._agent_state[8:9],
-            "p": self._agent_state[9:10],
-            "q": self._agent_state[10:11],
-            "r": self._agent_state[11]
-        }
+        return self._agent_state
 
     def _get_info(self):
         return {
@@ -101,17 +80,43 @@ class GridWorldEnv(gym.Env):
             self._render_frame()
 
         return observation, info
+    
+    def _rewardFcn(self):
+        """
+        返回的奖励函数包含以下项：
+        1.高度惩罚：当高度高于10000时，值为-(height-10000)/10000
+        2.角速度惩罚：当角速度大于0.1时，值为(omega-0.1)/0.1
+        3.飞行速度奖励：当飞行速度大于100时，值为(velocity-100)/100
+        4.边界奖励：当飞机飞出边界时，值为1
+        """
+        height = self._agent_state[2]
+        omega = np.linalg.norm(self._agent_state[9:11], ord=1)
+        velocity = self._agent_state[6]
+        reward = 0
+        if height > 10000:
+            reward += (10000-height)/10000
+        if omega > 0.1:
+            reward -= (omega-0.1)/0.1
+        if velocity > 100:
+            reward += (velocity-100)/100
+        if not self.observation_space.contains(self._agent_state):
+            reward += 1
+        return reward
 
     def step(self, action, time_step=0.01):
         self.simTime += time_step
         self._agent_state = np.array(self.f16.update(
-            pyf16.Control(thrust=action["thrust"], elevator=action["elevator"], aileron=action["aileron"], rudder=action["rudder"]), self.simTime
+            pyf16.Control(
+                thrust=action[0], 
+                elevator=action[1], 
+                aileron=action[2], 
+                rudder=action[3]
+            ), 
+            self.simTime
         ).state.to_list())
 
-        # terminated = np.array_equal(self._agent_state[0:3], self._target_location)
-        ## 如果_agent_state[0:3]的任意一项超出了observation_space的定义，则中止
-        terminated = self.observation_space["npos"].contains(self._agent_state[0:1]) and self.observation_space["epos"].contains(self._agent_state[1:2]) and self.observation_space["altitude"].contains(self._agent_state[2:3])
-        reward = 1 if terminated else 0  # Binary sparse rewards
+        terminated = self.observation_space.contains(self._agent_state)
+        reward = self._rewardFcn()
         observation = self._get_obs()
         info = self._get_info()
 
