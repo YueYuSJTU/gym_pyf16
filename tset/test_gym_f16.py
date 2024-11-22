@@ -13,9 +13,11 @@ init_obs, _ = env.reset()
 action = np.array([2109.4, -2.2441, -0.0936, 0.0945])
 
 position = []
+waypoints = []
 for i in range(3500):
     obs, reward, terminated, _, _ = env.step(action)
     position.append([obs[0], obs[1], obs[2]])
+    waypoints.append(obs[-3:])
     if terminated:
         env.reset()
         print(f"Terminated at step {i}")
@@ -36,6 +38,12 @@ ax.plot(position[0], position[1], position[2])
 # 区分起始点和终点
 ax.scatter(position[0][0], position[1][0], position[2][0], color='red', s=100, label='Start')
 ax.scatter(position[0][-1], position[1][-1], position[2][-1], color='blue', s=100, label='End')
+
+# 绘制路径点
+waypoints = list(map(list, set(map(tuple, waypoints))))
+print(f"Waypoints: {waypoints}")
+waypoints = list(zip(*waypoints))
+ax.scatter(waypoints[0], waypoints[1], waypoints[2], color='green', s=100, label='Waypoints')
 
 ax.set_zlim(0, 20000)
 ax.set_xlabel('North Position')
