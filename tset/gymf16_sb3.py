@@ -7,7 +7,7 @@ from stable_baselines3 import PPO
 
 env = gym.make('gym_pyf16_env/GridWorld-v0')
 
-model = PPO("MlpPolicy", env, verbose=1)
+model = PPO("MlpPolicy", env, verbose=1, device='cpu')
 model.learn(total_timesteps=10_000)
 
 env = model.get_env()

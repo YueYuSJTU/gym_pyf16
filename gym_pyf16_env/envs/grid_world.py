@@ -24,7 +24,7 @@ class GridWorldEnv(gym.Env):
             high=np.array([
                 15000, 15000, 30000, np.pi, np.pi, np.pi, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi
             ]),
-            dtype=np.float32
+            dtype=np.float64
         )
 
         self.action_space = spaces.Box(
@@ -40,7 +40,7 @@ class GridWorldEnv(gym.Env):
                 self.control_limits.ail_cmd_limit_top,
                 self.control_limits.rud_cmd_limit_top
             ]),
-            dtype=np.float32
+            dtype=np.float64
         )
 
         assert render_mode is None or render_mode in self.metadata["render_modes"]
@@ -114,8 +114,9 @@ class GridWorldEnv(gym.Env):
             ), 
             self.simTime
         ).state.to_list())
+        # print(f"Debug: {self._agent_state.dtype}")
 
-        terminated = self.observation_space.contains(self._agent_state)
+        terminated = not self.observation_space.contains(self._agent_state)
         reward = self._rewardFcn()
         observation = self._get_obs()
         info = self._get_info()
