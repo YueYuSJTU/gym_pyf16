@@ -108,7 +108,9 @@ class GridWorldEnv(gym.Env):
         if np.abs(beta) > 5:
             reward -= (np.abs(beta) - 5) / 5
         if np.linalg.norm(self._agent_state[-3:] - self._target_location, ord=1) < 100:
-            reward += 1
+            reward += 100
+        if not self.observation_space.contains(self._get_obs()):
+            reward -= 100
         return reward
 
     def step(self, action, time_step=0.01):

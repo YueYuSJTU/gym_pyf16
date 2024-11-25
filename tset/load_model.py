@@ -3,21 +3,27 @@ import gym_pyf16_env
 from gymnasium.wrappers import FlattenObservation
 import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.callbacks import ProgressBarCallback
+from stable_baselines3.common.evaluation import evaluate_policy
 
 
+# Create environment
 env = gym.make('gym_pyf16_env/GridWorld-v0')
-# Use deterministic actions for evaluation
-eval_callback = EvalCallback(env, best_model_save_path="./logs/",
-                             log_path="./logs/", eval_freq=500,
-                             deterministic=True, render=False)
 
-model = PPO("MlpPolicy", env, verbose=1, device='cpu')
-model.learn(total_timesteps=2500_000, progress_bar=True, callback=[eval_callback])
+# Load the trained agent
+# NOTE: if you have loading issue, you can pass `print_system_info=True`
+# to compare the system on which the model was trained vs the current one
+# model = DQN.load("dqn_lunar", env=env, print_system_info=True)
+model = PPO.load("./logs/best_model", env=env, device='cpu')
 
-env = model.get_env()
-obs = env.reset()
+# Evaluate the agent
+# NOTE: If you use wrappers with your environment that modify rewards,
+#       this will be reflected here. To evaluate with original rewards,
+#       wrap environment in a "Monitor" wrapper before other wrappers.
+# mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
+
+# Enjoy trained agent
+vec_env = model.get_env()
+obs = vec_env.reset()
 
 position = []
 waypoints = []
