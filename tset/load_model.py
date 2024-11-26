@@ -36,13 +36,15 @@ obs = vec_env.reset()
 
 position = []
 waypoints = []
+actions = []
 for i in range(10000):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, _ = vec_env.step(action)
     unNom_obs = vec_env.unnormalize_obs(obs)  # 取消归一化
-    print(f"Step {i}: {unNom_obs[0:6]}")
+    # print(f"Step {i}: {unNom_obs[0:6]}")
     position.append([unNom_obs[0][0], unNom_obs[0][1], unNom_obs[0][2]])
     waypoints.append(unNom_obs[0][-3:])
+    actions.append(action[0])
     if terminated:
         print(f"Terminated at step {i}")
         break
@@ -50,8 +52,8 @@ for i in range(10000):
 # 绘制位置关于时间的三维图像
 position.pop()              # 包装后的环境默认terminate后会reset，所以最后一个点是初值
 position = list(zip(*position))
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
+fig = plt.figure(figsize=(14, 8))
+ax = fig.add_subplot(121, projection='3d')
 ax.plot(position[0], position[1], position[2])
 
 # 区分起始点和终点
@@ -69,6 +71,22 @@ ax.set_xlabel('North Position')
 ax.set_ylabel('East Position')
 ax.set_zlabel('Altitude')
 ax.legend()
+
+actions = list(zip(*actions))
+Thrust = fig.add_subplot(422)
+Thrust.plot(actions[0], label='Thrust')
+Thrust.legend()
+Elevator = fig.add_subplot(424)
+Elevator.plot(actions[1], label='Elevator')
+Elevator.legend()
+Aileron = fig.add_subplot(426)
+Aileron.plot(actions[2], label='Aileron')
+Aileron.legend()
+Rudder = fig.add_subplot(428)
+Rudder.plot(actions[3], label='Rudder')
+Rudder.legend()
+
+
 plt.show()
 
 
