@@ -41,7 +41,7 @@ for i in range(10000):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, _ = vec_env.step(action)
     unNom_obs = vec_env.unnormalize_obs(obs)  # 取消归一化
-    # print(f"Step {i}: {unNom_obs[0:6]}")
+    print(f"Step {i}: {unNom_obs[0:6]}")
     position.append([unNom_obs[0][0], unNom_obs[0][1], unNom_obs[0][2]])
     waypoints.append(unNom_obs[0][-3:])
     actions.append(action[0])

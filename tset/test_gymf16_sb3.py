@@ -33,5 +33,5 @@ model = PPO("MlpPolicy", train_env, verbose=1, device='cpu')
 model.learn(total_timesteps=250_000, progress_bar=True, callback=[eval_callback])
 
 # 保存训练结束的模型
-model.save(log_path + "final_model")
+# model.save(log_path + "final_model")
 train_env.save(log_path + "final_train_env")

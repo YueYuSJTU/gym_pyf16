@@ -91,9 +91,10 @@ class GridWorldEnv(gym.Env):
         2.角速度惩罚：当p,q,r中的最大值大于0.1时，值为max(-(max-0.1)/0.1, -1)
         3.攻角惩罚：当攻角的绝对值大于20度时，值为(angle - 20)/20
         4.侧滑角惩罚：当侧滑角的绝对值大于5度时，值为(angle - 5)/5
-        3.导航点奖励：当飞机到达导航点时，值为1
+        5.导航点奖励：当飞机到达导航点时，值为1
         """
         height = self._agent_state[2]
+        phi, theta, psi = self._agent_state[3:6]
         p, q, r = self._agent_state[9:12]
         alpha = self._agent_state[7]
         beta = self._agent_state[8]
@@ -103,14 +104,24 @@ class GridWorldEnv(gym.Env):
             reward -= (5000 - height) / 5000
         if np.max(np.abs([p, q, r])) > 0.1:
             reward -= max(-(np.max(np.abs([p, q, r])) - 0.1) / 0.1, -1)
-        if np.abs(alpha) > 20:
-            reward -= (np.abs(alpha) - 20) / 20
-        if np.abs(beta) > 5:
-            reward -= (np.abs(beta) - 5) / 5
+        
+        if np.abs(phi) > np.pi / 2:
+            reward -= (np.abs(phi) - np.pi / 2) / (np.pi / 2)
+        if theta > np.pi / 6:
+            reward -= (theta - np.pi / 6) / (np.pi / 6)
+        elif theta < -np.pi * 0.0278:
+            reward -= (theta + np.pi * 0.0278) / (np.pi * 0.0278)
+        if np.abs(psi) > np.pi / 18:
+            reward -= (abs(psi) - np.pi / 18) / (np.pi / 18)
+
+        if np.abs(alpha) > 0.349:
+            reward -= (np.abs(alpha) - 0.349) / 0.349
+        if np.abs(beta) > 0.0872:
+            reward -= (np.abs(beta) - 0.0872) / 0.0872 * 3
         if np.linalg.norm(self._agent_state[-3:] - self._target_location, ord=1) < 100:
-            reward += 100
+            reward += 5000
         if not self.observation_space.contains(self._get_obs()):
-            reward -= 100
+            reward -= 2000
         return reward
 
     def step(self, action, time_step=0.01):
