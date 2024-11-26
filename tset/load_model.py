@@ -4,16 +4,25 @@ from gymnasium.wrappers import FlattenObservation
 import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
+# 模型存储位置
+log_path="./logs/"
+# 读取模型选择
+model_name = "best_model"
 
 # Create environment
-env = gym.make('gym_pyf16_env/GridWorld-v0')
+env_id = "gym_pyf16_env/GridWorld-v0"
+vec_env = DummyVecEnv([lambda: gym.make(env_id)])
+vec_env = VecNormalize.load(log_path + "final_train_env", vec_env)
+vec_env.training = False
+vec_env.norm_reward = False
 
 # Load the trained agent
 # NOTE: if you have loading issue, you can pass `print_system_info=True`
 # to compare the system on which the model was trained vs the current one
 # model = DQN.load("dqn_lunar", env=env, print_system_info=True)
-model = PPO.load("./logs/best_model", env=env, device='cpu')
+model = PPO.load(log_path + model_name, env=vec_env, device='cpu')
 
 # Evaluate the agent
 # NOTE: If you use wrappers with your environment that modify rewards,
@@ -29,9 +38,11 @@ position = []
 waypoints = []
 for i in range(10000):
     action, _state = model.predict(obs, deterministic=True)
-    obs, reward, terminated, _ = env.step(action)
-    position.append([obs[0][0], obs[0][1], obs[0][2]])
-    waypoints.append(obs[0][-3:])
+    obs, reward, terminated, _ = vec_env.step(action)
+    unNom_obs = vec_env.unnormalize_obs(obs)  # 取消归一化
+    print(f"Step {i}: {unNom_obs[0:6]}")
+    position.append([unNom_obs[0][0], unNom_obs[0][1], unNom_obs[0][2]])
+    waypoints.append(unNom_obs[0][-3:])
     if terminated:
         print(f"Terminated at step {i}")
         break
@@ -61,4 +72,4 @@ ax.legend()
 plt.show()
 
 
-env.close()
+vec_env.close()

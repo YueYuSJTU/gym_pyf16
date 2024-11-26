@@ -5,54 +5,33 @@ import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.callbacks import ProgressBarCallback
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 
-env = gym.make('gym_pyf16_env/GridWorld-v0')
+env_id = "gym_pyf16_env/GridWorld-v0"
+
+# 创建训练环境
+train_env = DummyVecEnv([lambda: gym.make(env_id)])
+train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True,
+                   clip_obs=10.)
+# 创建评估环境
+eval_env = DummyVecEnv([lambda: gym.make(env_id)])
+eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True,
+                   clip_obs=10.)
+eval_env.training = False
+eval_env.norm_reward = False
+
+# 模型存储位置
+log_path="./logs/"
+
 # Use deterministic actions for evaluation
-eval_callback = EvalCallback(env, best_model_save_path="./logs/",
-                             log_path="./logs/", eval_freq=500,
+eval_callback = EvalCallback(eval_env, best_model_save_path=log_path,
+                             log_path=log_path, eval_freq=5000,
                              deterministic=True, render=False)
 
-model = PPO("MlpPolicy", env, verbose=1, device='cpu')
-model.learn(total_timesteps=2500_000, progress_bar=True, callback=[eval_callback])
+model = PPO("MlpPolicy", train_env, verbose=1, device='cpu')
+model.learn(total_timesteps=250_000, progress_bar=True, callback=[eval_callback])
 
-env = model.get_env()
-obs = env.reset()
-
-position = []
-waypoints = []
-for i in range(10000):
-    action, _state = model.predict(obs, deterministic=True)
-    obs, reward, terminated, _ = env.step(action)
-    position.append([obs[0][0], obs[0][1], obs[0][2]])
-    waypoints.append(obs[0][-3:])
-    if terminated:
-        print(f"Terminated at step {i}")
-        break
-
-# 绘制位置关于时间的三维图像
-position.pop()              # 包装后的环境默认terminate后会reset，所以最后一个点是初值
-position = list(zip(*position))
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.plot(position[0], position[1], position[2])
-
-# 区分起始点和终点
-ax.scatter(position[0][0], position[1][0], position[2][0], color='red', s=100, label='Start')
-ax.scatter(position[0][-1], position[1][-1], position[2][-1], color='blue', s=100, label='End')
-
-# 绘制路径点
-waypoints = list(map(list, set(map(tuple, waypoints))))
-print(f"Waypoints: {waypoints}")
-waypoints = list(zip(*waypoints))
-ax.scatter(waypoints[0], waypoints[1], waypoints[2], color='green', s=100, label='Waypoints')
-
-ax.set_zlim(0, 20000)
-ax.set_xlabel('North Position')
-ax.set_ylabel('East Position')
-ax.set_zlabel('Altitude')
-ax.legend()
-plt.show()
-
-
-env.close()
+# 保存训练结束的模型
+model.save(log_path + "final_model")
+train_env.save(log_path + "final_train_env")
