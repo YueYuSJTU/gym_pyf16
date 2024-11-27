@@ -31,7 +31,7 @@ model = PPO.load(log_path + model_name, env=vec_env, device='cpu')
 # mean_reward, std_reward = evaluate_policy(model, model.get_env(), n_eval_episodes=10)
 
 # Enjoy trained agent
-vec_env = model.get_env()
+# vec_env = model.get_env()
 obs = vec_env.reset()
 
 position = []

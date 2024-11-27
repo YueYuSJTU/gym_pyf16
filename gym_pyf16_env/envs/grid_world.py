@@ -29,19 +29,24 @@ class GridWorldEnv(gym.Env):
             dtype=np.float64
         )
 
+        # self.action_space = spaces.Box(
+        #     low=np.array([
+        #         self.control_limits.thrust_cmd_limit_bottom,
+        #         self.control_limits.ele_cmd_limit_bottom,
+        #         self.control_limits.ail_cmd_limit_bottom,
+        #         self.control_limits.rud_cmd_limit_bottom
+        #     ]),
+        #     high=np.array([
+        #         self.control_limits.thrust_cmd_limit_top,
+        #         self.control_limits.ele_cmd_limit_top,
+        #         self.control_limits.ail_cmd_limit_top,
+        #         self.control_limits.rud_cmd_limit_top
+        #     ]),
+        #     dtype=np.float64
+        # )
         self.action_space = spaces.Box(
-            low=np.array([
-                self.control_limits.thrust_cmd_limit_bottom,
-                self.control_limits.ele_cmd_limit_bottom,
-                self.control_limits.ail_cmd_limit_bottom,
-                self.control_limits.rud_cmd_limit_bottom
-            ]),
-            high=np.array([
-                self.control_limits.thrust_cmd_limit_top,
-                self.control_limits.ele_cmd_limit_top,
-                self.control_limits.ail_cmd_limit_top,
-                self.control_limits.rud_cmd_limit_top
-            ]),
+            low=np.array([-1, -1, -1, -1]),
+            high=np.array([1, 1, 1, 1]),
             dtype=np.float64
         )
 
@@ -50,6 +55,15 @@ class GridWorldEnv(gym.Env):
 
         self.window = None
         self.clock = None
+    
+    def reflect_action(self, action):
+        return np.array([
+            (action[0] + 1) / 2 * (self.control_limits.thrust_cmd_limit_top - self.control_limits.thrust_cmd_limit_bottom) + self.control_limits.thrust_cmd_limit_bottom,
+            (action[1] + 1) / 2 * (self.control_limits.ele_cmd_limit_top - self.control_limits.ele_cmd_limit_bottom) + self.control_limits.ele_cmd_limit_bottom,
+            (action[2] + 1) / 2 * (self.control_limits.ail_cmd_limit_top - self.control_limits.ail_cmd_limit_bottom) + self.control_limits.ail_cmd_limit_bottom,
+            (action[3] + 1) / 2 * (self.control_limits.rud_cmd_limit_top - self.control_limits.rud_cmd_limit_bottom) + self.control_limits.rud_cmd_limit_bottom
+        ])
+    
 
     def _get_obs(self):
         return np.concatenate([self._agent_state, self._target_location])
@@ -117,7 +131,7 @@ class GridWorldEnv(gym.Env):
         if np.abs(alpha) > 0.349:
             reward -= (np.abs(alpha) - 0.349) / 0.349
         if np.abs(beta) > 0.0872:
-            reward -= (np.abs(beta) - 0.0872) / 0.0872 * 3
+            reward -= (np.abs(beta) - 0.0872) / 0.0872 
         if np.linalg.norm(self._agent_state[-3:] - self._target_location, ord=1) < 100:
             reward += 5000
         if not self.observation_space.contains(self._get_obs()):
@@ -126,6 +140,7 @@ class GridWorldEnv(gym.Env):
 
     def step(self, action, time_step=0.01):
         self.simTime += time_step
+        action = self.reflect_action(action)
         self._agent_state = np.array(self.f16.update(
             pyf16.Control(
                 thrust=action[0], 
@@ -152,7 +167,7 @@ class GridWorldEnv(gym.Env):
             self._render_frame()
 
         return observation, reward, terminated, False, info
-
+    
     def _set_waypoints(self):
         """
         在observation space 的前三个维度内随机选取三个点作为导航点

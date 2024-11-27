@@ -26,11 +26,11 @@ log_path="./logs/"
 
 # Use deterministic actions for evaluation
 eval_callback = EvalCallback(eval_env, best_model_save_path=log_path,
-                             log_path=log_path, eval_freq=5000,
+                             log_path=log_path, eval_freq=50000,
                              deterministic=True, render=False)
 
 model = PPO("MlpPolicy", train_env, verbose=1, device='cpu')
-model.learn(total_timesteps=250_000, progress_bar=True, callback=[eval_callback])
+model.learn(total_timesteps=25000_000, progress_bar=True, callback=[eval_callback])
 
 # 保存训练结束的模型
 # model.save(log_path + "final_model")
