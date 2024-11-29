@@ -2,3 +2,4 @@ from gym_pyf16_env.wrappers.clip_reward import ClipReward
 from gym_pyf16_env.wrappers.discrete_actions import DiscreteActions
 from gym_pyf16_env.wrappers.reacher_weighted_reward import ReacherRewardWrapper
 from gym_pyf16_env.wrappers.relative_position import RelativePosition
+from gym_pyf16_env.wrappers.skip_obs import SkipObsWrapper

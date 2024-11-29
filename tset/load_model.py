@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+from gym_pyf16_env.wrappers import SkipObsWrapper
 
 # 模型存储位置
 log_path="./logs/"
@@ -13,7 +14,8 @@ model_name = "best_model"
 
 # Create environment
 env_id = "gym_pyf16_env/GridWorld-v0"
-vec_env = DummyVecEnv([lambda: gym.make(env_id)])
+# vec_env = DummyVecEnv([lambda: gym.make(env_id)])
+vec_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=1, skip_times=4)])
 vec_env = VecNormalize.load(log_path + "final_train_env", vec_env)
 vec_env.training = False
 vec_env.norm_reward = False
