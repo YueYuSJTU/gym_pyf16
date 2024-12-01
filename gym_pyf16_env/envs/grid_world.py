@@ -20,11 +20,11 @@ class GridWorldEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=np.concatenate([
                 np.array([-15000, -15000, 0, -np.pi, -np.pi, -np.pi, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi]),
-                np.array([-15000, -15000, 0])
+                np.array([-40000, -40000, -40000])
             ]),
             high=np.concatenate([
                 np.array([15000, 15000, 30000, np.pi, np.pi, np.pi, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi]),
-                np.array([15000, 15000, 30000])
+                np.array([40000, 40000, 40000])
             ]),
             dtype=np.float64
         )
@@ -66,7 +66,7 @@ class GridWorldEnv(gym.Env):
     
 
     def _get_obs(self):
-        return np.concatenate([self._agent_state, self._target_location])
+        return np.concatenate([self._agent_state, self._relative_location])
 
     def _get_info(self):
         return {
@@ -74,6 +74,9 @@ class GridWorldEnv(gym.Env):
                 self._agent_state[0:3] - self._target_location, ord=1
             )
         }
+    
+    def _cal_relative_location(self, location):
+        return location - self._agent_state[0:3]
 
     def reset(self, seed=None, options=None):
         # We need the following line to seed self.np_random
@@ -89,6 +92,7 @@ class GridWorldEnv(gym.Env):
         self._agent_state = np.array(self.f16.state.state.to_list())
         self.waypoints = self._set_waypoints()
         self._target_location = self.waypoints[-1]
+        self._relative_location = self._cal_relative_location(self._target_location)
 
         observation = self._get_obs()
         info = self._get_info()
@@ -160,6 +164,7 @@ class GridWorldEnv(gym.Env):
         reward = self._rewardFcn()
         observation = self._get_obs()
         info = self._get_info()
+        self._relative_location = self._cal_relative_location(self._target_location)
         # print(f"Debug: {not self.observation_space.contains(observation)}, {len(self.waypoints) == 0}")
         terminated = (not self.observation_space.contains(observation)) or len(self.waypoints) == 0
 
@@ -177,9 +182,9 @@ class GridWorldEnv(gym.Env):
             waypoints.append(
                 np.array(
                     [
-                        self.np_random.uniform(-15000, 15000),
-                        self.np_random.uniform(-15000, 15000),
-                        self.np_random.uniform(0, 30000),
+                        self.np_random.uniform(-10000, 10000),
+                        self.np_random.uniform(-10000, 10000),
+                        self.np_random.uniform(10000, 25000),
                     ]
                 )
             )
