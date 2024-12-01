@@ -11,11 +11,15 @@ from gym_pyf16_env.wrappers import SkipObsWrapper
 log_path="./logs/"
 # 读取模型选择
 model_name = "best_model"
+# model_name = "1127_1523_skip_1_4"
+
+skipStep = 5
+skipTimes = 3
 
 # Create environment
 env_id = "gym_pyf16_env/GridWorld-v0"
 # vec_env = DummyVecEnv([lambda: gym.make(env_id)])
-vec_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=1, skip_times=4)])
+vec_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=skipStep, skip_times=skipTimes)])
 vec_env = VecNormalize.load(log_path + "final_train_env", vec_env)
 vec_env.training = False
 vec_env.norm_reward = False
@@ -42,7 +46,7 @@ actions = []
 for i in range(10000):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, _ = vec_env.step(action)
-    unNom_obs = vec_env.unnormalize_obs(obs)  # 取消归一化
+    unNom_obs = vec_env.unnormalize_obs(obs[0])  # 取消归一化
     print(f"Step {i}: {unNom_obs[0:6]}")
     position.append([unNom_obs[0][0], unNom_obs[0][1], unNom_obs[0][2]])
     waypoints.append(unNom_obs[0][-3:])

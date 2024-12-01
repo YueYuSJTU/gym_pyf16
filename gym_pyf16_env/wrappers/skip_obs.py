@@ -7,13 +7,13 @@ class SkipObsWrapper(gym.ObservationWrapper):
         self.skip_step = skip_step
         self.skip_times = skip_times
         self.observation_space = gym.spaces.Box(
-            low=np.concatenate([self.observation_space.low]*skip_times),
-            high=np.concatenate([self.observation_space.high]*skip_times),
+            low=np.array([self.observation_space.low]*skip_times),
+            high=np.array([self.observation_space.high]*skip_times),
             dtype=np.float64
         )
 
     def _get_obs(self):
-        return np.concatenate([self._state_list[i] for i in range(0, len(self._state_list), self.skip_step + 1)])
+        return np.array([self._state_list[i] for i in range(0, len(self._state_list), self.skip_step + 1)])
 
     def reset(self, seed=None):
         self._state_list = []
@@ -30,5 +30,4 @@ class SkipObsWrapper(gym.ObservationWrapper):
         self._state_list.pop()
         self._state_list.insert(0, obs)
         self._state = self._get_obs()
-        # 在info里面传递当前obs以方便画图
         return self._state, reward, terminated, truncated, info

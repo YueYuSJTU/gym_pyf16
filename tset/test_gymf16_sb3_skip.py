@@ -16,11 +16,11 @@ skipTimes = 3
 
 # 创建训练环境
 train_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=skipStep, skip_times=skipTimes)])
-train_env = VecNormalize(train_env, norm_obs=True, norm_reward=True,
+train_env = VecNormalize(train_env, norm_obs=True, norm_reward=False,
                    clip_obs=10.)
 # 创建评估环境
 eval_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=skipStep, skip_times=skipTimes)])
-eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=True,
+eval_env = VecNormalize(eval_env, norm_obs=True, norm_reward=False,
                    clip_obs=10.)
 eval_env.training = False
 eval_env.norm_reward = False
@@ -34,7 +34,7 @@ eval_callback = EvalCallback(eval_env, best_model_save_path=log_path,
                              deterministic=True, render=False)
 
 model = PPO("MlpPolicy", train_env, verbose=1, device='cpu')
-model.learn(total_timesteps=2500_000, progress_bar=True, callback=[eval_callback])
+model.learn(total_timesteps=250_000, progress_bar=True, callback=[eval_callback])
 
 # 保存训练结束的模型
 model.save(log_path + "final_model")

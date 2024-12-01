@@ -6,8 +6,11 @@ import numpy as np
 import time
 startTime = time.time()
 
+skipStep = 1
+skipTimes = 4
+
 initEnv = gymnasium.make('gym_pyf16_env/GridWorld-v0')
-wrapped_env = SkipObsWrapper(initEnv, skip_step=1, skip_times=4)
+wrapped_env = SkipObsWrapper(initEnv, skip_step=skipStep, skip_times=skipTimes)
 print(f"wrapped observation space: {wrapped_env.observation_space}")
 
 init_obs, _ = wrapped_env.reset()
@@ -20,7 +23,8 @@ action = np.array([-0.5, -0.05, 0, 0])
 position = []
 waypoints = []
 for i in range(3500):
-    _, reward, terminated, _, obs = wrapped_env.step(action)
+    obs, reward, terminated, _, _ = wrapped_env.step(action)
+    obs = obs[0]
     position.append([obs[0], obs[1], obs[2]])
     waypoints.append(obs[-3:])
     if terminated:
