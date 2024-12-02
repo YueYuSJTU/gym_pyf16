@@ -136,8 +136,9 @@ class GridWorldEnv(gym.Env):
             reward -= (np.abs(alpha) - 0.349) / 0.349
         if np.abs(beta) > 0.0872:
             reward -= (np.abs(beta) - 0.0872) / 0.0872 
-        if np.linalg.norm(self._agent_state[-3:] - self._target_location, ord=1) < 100:
+        if np.linalg.norm(self._agent_state[0:3] - self._target_location, ord=2) < 100:
             reward += 5000
+        reward -= np.linalg.norm(self._agent_state[-3:], ord=2) / 15000
         if not self.observation_space.contains(self._get_obs()):
             reward -= 2000
         return reward
@@ -156,7 +157,7 @@ class GridWorldEnv(gym.Env):
         ).state.to_list())
         # print(f"Debug: {self._agent_state.dtype}")
 
-        if np.linalg.norm(self._agent_state[-3:] - self._target_location, ord=1) < 100:
+        if np.linalg.norm(self._agent_state[0:3] - self._target_location, ord=2) < 100:
             self.waypoints.pop()
             if len(self.waypoints) > 0:
                 self._target_location = self.waypoints[-1]
@@ -188,6 +189,9 @@ class GridWorldEnv(gym.Env):
                     ]
                 )
             )
+        waypoints[0] = np.array([5000, 5000, 10000])
+        waypoints[1] = np.array([5000, -5000, 15000])
+        waypoints[2] = np.array([-5000, -5000, 13000])
         return waypoints
 
     def render(self):

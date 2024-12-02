@@ -11,7 +11,7 @@ from gym_pyf16_env.wrappers import SkipObsWrapper
 log_path="./logs/"
 # 读取模型选择
 model_name = "best_model"
-# model_name = "1127_1523_skip_1_4"
+# model_name = "1201_1309_dim_depart_FixTarget"
 
 skipStep = 5
 skipTimes = 3
@@ -71,6 +71,8 @@ ax.scatter(position[0][-1], position[1][-1], position[2][-1], color='blue', s=10
 # print(f"Waypoints: {waypoints}")
 # waypoints = list(zip(*waypoints))
 waypoints = vec_env.get_attr('waypoints')[0]
+waypoints = list(zip(*waypoints))
+print(f"Waypoints: {waypoints}")
 ax.scatter(waypoints[0], waypoints[1], waypoints[2], color='green', s=100, label='Waypoints')
 
 ax.set_zlim(0, 20000)
