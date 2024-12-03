@@ -117,30 +117,40 @@ class GridWorldEnv(gym.Env):
         alpha = self._agent_state[7]
         beta = self._agent_state[8]
 
+        # 高度和角速度惩罚
         reward = 0
-        if height < 5000:
-            reward -= (5000 - height) / 5000
-        if np.max(np.abs([p, q, r])) > 0.1:
-            reward -= max(-(np.max(np.abs([p, q, r])) - 0.1) / 0.1, -1)
+        # if height < 5000:
+        #     reward -= (5000 - height) / 5000 * 0.01
+        # if np.max(np.abs([p, q, r])) > 0.1:
+        #     reward -= max(-(np.max(np.abs([p, q, r])) - 0.1) / 0.1, -1) * 0.01
         
+        # 攻角和侧滑角惩罚
         if np.abs(phi) > np.pi / 2:
-            reward -= (np.abs(phi) - np.pi / 2) / (np.pi / 2)
-        if theta > np.pi / 6:
-            reward -= (theta - np.pi / 6) / (np.pi / 6)
-        elif theta < -np.pi * 0.0278:
-            reward -= (theta + np.pi * 0.0278) / (np.pi * 0.0278)
-        if np.abs(psi) > np.pi / 18:
-            reward -= (abs(psi) - np.pi / 18) / (np.pi / 18)
+            reward -= (np.abs(phi) - np.pi / 2) / (np.pi / 2) * 0.02
+        # if theta > np.pi / 6:
+        #     reward -= np.abs((theta - np.pi / 6) / (np.pi / 6)) * 0.001
+        # elif theta < -np.pi * 0.0278:
+        #     reward -= np.abs((theta + np.pi * 0.0278) / (np.pi * 0.0278)) * 0.001
+        # if np.abs(psi) > np.pi / 18:
+        #     reward -= np.abs((abs(psi) - np.pi / 18) / (np.pi / 18)) * 0.00001
 
         if np.abs(alpha) > 0.349:
-            reward -= (np.abs(alpha) - 0.349) / 0.349
+            reward -= (np.abs(alpha) - 0.349) / 0.349 * 0.05
         if np.abs(beta) > 0.0872:
-            reward -= (np.abs(beta) - 0.0872) / 0.0872 
-        if np.linalg.norm(self._agent_state[0:3] - self._target_location, ord=2) < 100:
-            reward += 5000
-        reward -= np.linalg.norm(self._agent_state[-3:], ord=2) / 15000
-        if not self.observation_space.contains(self._get_obs()):
-            reward -= 2000
+            reward -= (np.abs(beta) - 0.0872) / 0.0872 * 0.05
+        
+        # # 导航点奖励
+        # reward = reward * 0.2
+        # if np.linalg.norm(self._agent_state[0:3] - self._target_location, ord=2) < 100:
+        #     reward += 50
+        # reward -= np.linalg.norm(self._agent_state[-3:], ord=2) / 15000
+
+        # 时间奖励
+        reward += 0.01
+        if self.simTime > 50:
+            reward -= 0.02
+        # if not self.observation_space.contains(self._get_obs()):
+        #     reward -= 1000
         return reward
 
     def step(self, action, time_step=0.01):
@@ -168,6 +178,9 @@ class GridWorldEnv(gym.Env):
         self._relative_location = self._cal_relative_location(self._target_location)
         # print(f"Debug: {not self.observation_space.contains(observation)}, {len(self.waypoints) == 0}")
         terminated = (not self.observation_space.contains(observation)) or len(self.waypoints) == 0
+        if self.simTime > 150:
+            terminated = True
+        # terminated = self.simTime > 50 or len(self.waypoints) == 0
 
         if self.render_mode == "human":
             self._render_frame()
@@ -189,9 +202,9 @@ class GridWorldEnv(gym.Env):
                     ]
                 )
             )
-        waypoints[0] = np.array([5000, 5000, 10000])
+        waypoints[2] = np.array([5000, 5000, 10000])
         waypoints[1] = np.array([5000, -5000, 15000])
-        waypoints[2] = np.array([-5000, -5000, 13000])
+        waypoints[0] = np.array([-5000, -5000, 13000])
         return waypoints
 
     def render(self):

@@ -30,10 +30,10 @@ log_path="./logs/"
 
 # Use deterministic actions for evaluation
 eval_callback = EvalCallback(eval_env, best_model_save_path=log_path,
-                             log_path=log_path, eval_freq=10000,
+                             log_path=log_path, eval_freq=5000,
                              deterministic=True, render=False)
 
-model = PPO("MlpPolicy", train_env, verbose=1, device='cpu')
+model = PPO("MlpPolicy", train_env, verbose=1, device='cpu', tensorboard_log="./logs/tenorboard/")
 model.learn(total_timesteps=250_000, progress_bar=True, callback=[eval_callback])
 
 # 保存训练结束的模型

@@ -10,8 +10,8 @@ from gym_pyf16_env.wrappers import SkipObsWrapper
 # 模型存储位置
 log_path="./logs/"
 # 读取模型选择
-model_name = "best_model"
-# model_name = "1201_1309_dim_depart_FixTarget"
+# model_name = "best_model"
+model_name = "skip_5_3_abphi"
 
 skipStep = 5
 skipTimes = 3
@@ -43,7 +43,7 @@ obs = vec_env.reset()
 position = []
 # waypoints = []
 actions = []
-for i in range(10000):
+for i in range(15000):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, _ = vec_env.step(action)
     unNom_obs = vec_env.unnormalize_obs(obs[0])  # 取消归一化
