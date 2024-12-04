@@ -17,7 +17,7 @@ class SkipObsWrapper(gym.ObservationWrapper):
 
     def reset(self, seed=None):
         self._state_list = []
-        obs, info = self.env.reset()
+        obs, info = self.env.reset(seed=seed)
         self._state_list.append(obs)
         for _ in range(self.skip_times + self.skip_step*(self.skip_times-1) - 1):
             skip_obs, _, _, _, info = self.env.step(np.zeros(self.action_space.shape))

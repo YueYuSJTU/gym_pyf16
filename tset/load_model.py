@@ -6,20 +6,27 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from gym_pyf16_env.wrappers import SkipObsWrapper
+import numpy as np
 
 # 模型存储位置
 log_path="./logs/"
 # 读取模型选择
-# model_name = "best_model"
-model_name = "skip_5_3_abphi"
+model_name = "best_model"
+# model_name = "skip_5_3_abphi"
 
 skipStep = 5
 skipTimes = 3
+
+# 设置随机种子
+seed = 42
+np.random.seed(seed)
+gym.utils.seeding.np_random(seed)
 
 # Create environment
 env_id = "gym_pyf16_env/GridWorld-v0"
 # vec_env = DummyVecEnv([lambda: gym.make(env_id)])
 vec_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=skipStep, skip_times=skipTimes)])
+vec_env.seed(seed)
 vec_env = VecNormalize.load(log_path + "final_train_env", vec_env)
 vec_env.training = False
 vec_env.norm_reward = False
@@ -41,14 +48,18 @@ model = PPO.load(log_path + model_name, env=vec_env, device='cpu')
 obs = vec_env.reset()
 
 position = []
+Euler = []
+rewardDepart = []
 # waypoints = []
 actions = []
 for i in range(15000):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, _ = vec_env.step(action)
+    rewardDepart.append([vec_env.get_attr('phi'), vec_env.get_attr('theta'), vec_env.get_attr('psi')])
     unNom_obs = vec_env.unnormalize_obs(obs[0])  # 取消归一化
     print(f"Step {i}: {unNom_obs[0:6]}")
     position.append([unNom_obs[0][0], unNom_obs[0][1], unNom_obs[0][2]])
+    Euler.append([unNom_obs[0][3], unNom_obs[0][4], unNom_obs[0][5]])
     # waypoints.append(unNom_obs[0][-3:])
     actions.append(action[0])
     if terminated:
@@ -57,9 +68,11 @@ for i in range(15000):
 
 # 绘制位置关于时间的三维图像
 position.pop()              # 包装后的环境默认terminate后会reset，所以最后一个点是初值
+Euler.pop()
+rewardDepart.pop()
 position = list(zip(*position))
-fig = plt.figure(figsize=(14, 8))
-ax = fig.add_subplot(121, projection='3d')
+fig = plt.figure(figsize=(20, 12))
+ax = fig.add_subplot(141, projection='3d')
 ax.plot(position[0], position[1], position[2])
 
 # 区分起始点和终点
@@ -81,22 +94,44 @@ ax.set_ylabel('East Position')
 ax.set_zlabel('Altitude')
 ax.legend()
 
+# 绘制欧拉角关于时间的图像
+Euler = list(zip(*Euler))
+Roll = fig.add_subplot(442)
+Roll.plot(Euler[0], label='Roll')
+Roll.legend()
+Pitch = fig.add_subplot(443)
+Pitch.plot(Euler[1], label='Pitch')
+Pitch.legend()
+Yaw = fig.add_subplot(444)
+Yaw.plot(Euler[2], label='Yaw')
+Yaw.legend()
+
 actions = list(zip(*actions))
-Thrust = fig.add_subplot(422)
+Thrust = fig.add_subplot(446)
 Thrust.plot(actions[0], label='Thrust')
 Thrust.legend()
-Elevator = fig.add_subplot(424)
+Elevator = fig.add_subplot(447)
 Elevator.plot(actions[1], label='Elevator')
 Elevator.legend()
-Aileron = fig.add_subplot(426)
+Aileron = fig.add_subplot(448)
 Aileron.plot(actions[2], label='Aileron')
 Aileron.legend()
-Rudder = fig.add_subplot(428)
+Rudder = fig.add_subplot(4,4,10)
 Rudder.plot(actions[3], label='Rudder')
 Rudder.legend()
 
+# 绘制奖励函数
+rewardDepart = list(zip(*rewardDepart))
+phi = fig.add_subplot(4,4,14)
+phi.plot(rewardDepart[0], label='Phi')
+phi.legend()
+theta = fig.add_subplot(4,4,15)
+theta.plot(rewardDepart[1], label='Theta')
+theta.legend()
+psi = fig.add_subplot(4,4,16)
+psi.plot(rewardDepart[2], label='Psi')
+psi.legend()
 
 plt.show()
-
 
 vec_env.close()

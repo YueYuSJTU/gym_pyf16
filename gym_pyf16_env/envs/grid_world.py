@@ -19,11 +19,11 @@ class GridWorldEnv(gym.Env):
 
         self.observation_space = spaces.Box(
             low=np.concatenate([
-                np.array([-15000, -15000, 0, -np.pi, -np.pi, -np.pi, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi]),
+                np.array([-75000, -75000, 0, -np.pi, -np.pi, -np.pi, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi]),
                 np.array([-40000, -40000, -40000])
             ]),
             high=np.concatenate([
-                np.array([15000, 15000, 30000, np.pi, np.pi, np.pi, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi]),
+                np.array([75000, 75000, 30000, np.pi, np.pi, np.pi, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi]),
                 np.array([40000, 40000, 40000])
             ]),
             dtype=np.float64
@@ -94,6 +94,12 @@ class GridWorldEnv(gym.Env):
         self._target_location = self.waypoints[-1]
         self._relative_location = self._cal_relative_location(self._target_location)
 
+        # 奖励函数各项
+        self.reward = 0
+        self.phi = 0
+        self.theta = 0
+        self.psi = 0
+
         observation = self._get_obs()
         info = self._get_info()
 
@@ -126,18 +132,22 @@ class GridWorldEnv(gym.Env):
         
         # 攻角和侧滑角惩罚
         if np.abs(phi) > np.pi / 2:
-            reward -= (np.abs(phi) - np.pi / 2) / (np.pi / 2) * 0.02
+            self.phi = (np.abs(phi) - np.pi / 2) / (np.pi / 2) * 0.02
         # if theta > np.pi / 6:
         #     reward -= np.abs((theta - np.pi / 6) / (np.pi / 6)) * 0.001
         # elif theta < -np.pi * 0.0278:
         #     reward -= np.abs((theta + np.pi * 0.0278) / (np.pi * 0.0278)) * 0.001
-        # if np.abs(psi) > np.pi / 18:
-        #     reward -= np.abs((abs(psi) - np.pi / 18) / (np.pi / 18)) * 0.00001
+        if np.abs(psi) > np.pi / 18:
+            self.psi = np.abs((np.abs(psi) - np.pi / 18)) * 0.01
 
-        if np.abs(alpha) > 0.349:
-            reward -= (np.abs(alpha) - 0.349) / 0.349 * 0.05
-        if np.abs(beta) > 0.0872:
-            reward -= (np.abs(beta) - 0.0872) / 0.0872 * 0.05
+        # if np.abs(alpha) > 0.349:
+        #     reward -= (np.abs(alpha) - 0.349) / 0.349 * 0.05
+        # if np.abs(beta) > 0.0872:
+        #     reward -= (np.abs(beta) - 0.0872) / 0.0872 * 0.05
+
+        # reward = reward * np.exp(-self.simTime / 50)
+        reward = -self.phi - self.psi
+        reward = reward * (150 - self.simTime) / 150
         
         # # 导航点奖励
         # reward = reward * 0.2
@@ -146,11 +156,12 @@ class GridWorldEnv(gym.Env):
         # reward -= np.linalg.norm(self._agent_state[-3:], ord=2) / 15000
 
         # 时间奖励
-        reward += 0.01
-        if self.simTime > 50:
-            reward -= 0.02
+        reward += 0.03
+        if self.simTime > 30:
+            reward += 0.03
         # if not self.observation_space.contains(self._get_obs()):
         #     reward -= 1000
+        self.reward = reward
         return reward
 
     def step(self, action, time_step=0.01):
