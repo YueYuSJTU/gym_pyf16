@@ -12,8 +12,8 @@ import numpy as np
 log_path="./logs/"
 # 读取模型选择
 # model_name = "best_model"
-model_name = "final_model"
-# model_name = "Euler_last_model"
+# model_name = "final_model"
+model_name = "newENV_150s"
 
 skipStep = 5
 skipTimes = 3

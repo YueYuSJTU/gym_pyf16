@@ -8,6 +8,7 @@ from stable_baselines3.common.callbacks import ProgressBarCallback
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 from gym_pyf16_env.wrappers import SkipObsWrapper
 import numpy as np
+from Best3Eval import BestThreeEvalCallback
 
 env_id = "gym_pyf16_env/GridWorld-v0"
 
@@ -36,12 +37,15 @@ eval_env.norm_reward = False
 log_path="./logs/"
 
 # Use deterministic actions for evaluation
-eval_callback = EvalCallback(eval_env, best_model_save_path=log_path,
-                             log_path=log_path, eval_freq=10000,
-                             deterministic=True, render=False)
+# eval_callback = EvalCallback(eval_env, best_model_save_path=log_path,
+#                              log_path=log_path, eval_freq=10000,
+#                              deterministic=True, render=False)
+eval_callback = BestThreeEvalCallback(eval_env, best_model_save_path=log_path,
+                                      log_path=log_path, eval_freq=10000,
+                                      deterministic=True, render=False)
 
 model = PPO("MlpPolicy", train_env, verbose=1, device='cpu', tensorboard_log="./logs/tenorboard/")
-model.learn(total_timesteps=2000_000, progress_bar=True, callback=[eval_callback])
+model.learn(total_timesteps=5000_000, progress_bar=True, callback=[eval_callback])
 
 # 保存训练结束的模型
 model.save(log_path + "final_model")

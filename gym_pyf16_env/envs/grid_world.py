@@ -19,11 +19,11 @@ class GridWorldEnv(gym.Env):
 
         self.observation_space = spaces.Box(
             low=np.concatenate([
-                np.array([-75000, -75000, 0, -np.inf, -np.inf, -np.inf, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi]),
+                np.array([-75000, -75000, 0, -np.inf, -np.inf, -np.inf, 0, -0.5*np.pi, -0.15*np.pi, -np.pi, -np.pi, -np.pi]),
                 np.array([-40000, -40000, -40000])
             ]),
             high=np.concatenate([
-                np.array([75000, 75000, 30000, np.inf, np.inf, np.inf, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi]),
+                np.array([75000, 75000, 30000, np.inf, np.inf, np.inf, 1000, 0.5*np.pi, 0.15*np.pi, np.pi, np.pi, np.pi]),
                 np.array([40000, 40000, 40000])
             ]),
             dtype=np.float64
@@ -153,7 +153,7 @@ class GridWorldEnv(gym.Env):
         if self.simTime > 0.5:
             actions = np.array(self.previous_actions)
             action_diffs = np.diff(actions, axis=0)
-            action_penalty = np.sum(np.abs(action_diffs))*0.0008
+            action_penalty = np.sum(np.abs(action_diffs))*0.0015
             self.action_penalty = action_penalty
         else:
             self.action_penalty = 0
@@ -170,9 +170,9 @@ class GridWorldEnv(gym.Env):
         # reward -= np.linalg.norm(self._agent_state[-3:], ord=2) / 15000
 
         # 时间奖励
-        reward += 0.03
+        reward += 0.07
         if self.simTime > 30:
-            reward += 0.03
+            reward += 0.05
         return reward
 
     def step(self, action, time_step=0.01):
