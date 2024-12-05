@@ -11,8 +11,9 @@ import numpy as np
 # 模型存储位置
 log_path="./logs/"
 # 读取模型选择
-model_name = "best_model"
-# model_name = "skip_5_3_abphi"
+# model_name = "best_model"
+model_name = "final_model"
+# model_name = "Euler_last_model"
 
 skipStep = 5
 skipTimes = 3
@@ -52,12 +53,13 @@ Euler = []
 rewardDepart = []
 # waypoints = []
 actions = []
+print("Start to simulate")
 for i in range(15000):
     action, _state = model.predict(obs, deterministic=True)
     obs, reward, terminated, _ = vec_env.step(action)
-    rewardDepart.append([vec_env.get_attr('phi'), vec_env.get_attr('theta'), vec_env.get_attr('psi')])
+    rewardDepart.append([vec_env.get_attr('alpha'), vec_env.get_attr('height'), vec_env.get_attr('beta'), vec_env.get_attr('action_penalty')])
     unNom_obs = vec_env.unnormalize_obs(obs[0])  # 取消归一化
-    print(f"Step {i}: {unNom_obs[0:6]}")
+    # print(f"Step {i}: {unNom_obs[0:6]}")
     position.append([unNom_obs[0][0], unNom_obs[0][1], unNom_obs[0][2]])
     Euler.append([unNom_obs[0][3], unNom_obs[0][4], unNom_obs[0][5]])
     # waypoints.append(unNom_obs[0][-3:])
@@ -122,15 +124,18 @@ Rudder.legend()
 
 # 绘制奖励函数
 rewardDepart = list(zip(*rewardDepart))
-phi = fig.add_subplot(4,4,14)
-phi.plot(rewardDepart[0], label='Phi')
-phi.legend()
-theta = fig.add_subplot(4,4,15)
-theta.plot(rewardDepart[1], label='Theta')
-theta.legend()
-psi = fig.add_subplot(4,4,16)
-psi.plot(rewardDepart[2], label='Psi')
-psi.legend()
+alpha = fig.add_subplot(4,4,14)
+alpha.plot(rewardDepart[0], label='alpha')
+alpha.legend()
+height = fig.add_subplot(4,4,15)
+height.plot(rewardDepart[1], label='height')
+height.legend()
+beta = fig.add_subplot(4,4,16)
+beta.plot(rewardDepart[2], label='beta')
+beta.legend()
+action_penalty = fig.add_subplot(4,4,12)
+action_penalty.plot(rewardDepart[3], label='Action Penalty')
+action_penalty.legend()
 
 plt.show()
 

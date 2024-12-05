@@ -19,11 +19,11 @@ class GridWorldEnv(gym.Env):
 
         self.observation_space = spaces.Box(
             low=np.concatenate([
-                np.array([-75000, -75000, 0, -np.pi, -np.pi, -np.pi, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi]),
+                np.array([-75000, -75000, 0, -np.inf, -np.inf, -np.inf, 0, -0.5*np.pi, -0.5*np.pi, -np.pi, -np.pi, -np.pi]),
                 np.array([-40000, -40000, -40000])
             ]),
             high=np.concatenate([
-                np.array([75000, 75000, 30000, np.pi, np.pi, np.pi, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi]),
+                np.array([75000, 75000, 30000, np.inf, np.inf, np.inf, 1000, 0.5*np.pi, 0.5*np.pi, np.pi, np.pi, np.pi]),
                 np.array([40000, 40000, 40000])
             ]),
             dtype=np.float64
@@ -90,15 +90,18 @@ class GridWorldEnv(gym.Env):
         self.f16 = pyf16.PlaneBlock("1", self.aero_model, self.trim_result, [0, 0, 0], self.control_limits)
 
         self._agent_state = np.array(self.f16.state.state.to_list())
+        self.current_action = np.zeros(self.action_space.shape)
         self.waypoints = self._set_waypoints()
         self._target_location = self.waypoints[-1]
         self._relative_location = self._cal_relative_location(self._target_location)
+        # self.previous_actions = [np.zeros(4) for _ in range(10)]
+        self.previous_actions = []
 
         # 奖励函数各项
-        self.reward = 0
-        self.phi = 0
-        self.theta = 0
-        self.psi = 0
+        self.alpha = 0
+        self.height = 0
+        self.beta = 0
+        self.action_penalty = 0
 
         observation = self._get_obs()
         info = self._get_info()
@@ -116,6 +119,7 @@ class GridWorldEnv(gym.Env):
         3.攻角惩罚：当攻角的绝对值大于20度时，值为(angle - 20)/20
         4.侧滑角惩罚：当侧滑角的绝对值大于5度时，值为(angle - 5)/5
         5.导航点奖励：当飞机到达导航点时，值为1
+        6.动作惩罚：对当前时刻以及之前10个时刻的动作进行相邻两个动作的差分，然后对10个差分求和，但惩罚值不超过0.02
         """
         height = self._agent_state[2]
         phi, theta, psi = self._agent_state[3:6]
@@ -125,28 +129,38 @@ class GridWorldEnv(gym.Env):
 
         # 高度和角速度惩罚
         reward = 0
-        # if height < 5000:
-        #     reward -= (5000 - height) / 5000 * 0.01
+        if height < 10000:
+            self.height = (10000 - height) / 10000 * 0.03
         # if np.max(np.abs([p, q, r])) > 0.1:
         #     reward -= max(-(np.max(np.abs([p, q, r])) - 0.1) / 0.1, -1) * 0.01
         
         # 攻角和侧滑角惩罚
-        if np.abs(phi) > np.pi / 2:
-            self.phi = (np.abs(phi) - np.pi / 2) / (np.pi / 2) * 0.02
+        # if np.abs(phi) > np.pi / 2:
+        #     self.phi = (np.abs(phi) - np.pi / 2) / (np.pi / 2) * 0.02
         # if theta > np.pi / 6:
         #     reward -= np.abs((theta - np.pi / 6) / (np.pi / 6)) * 0.001
         # elif theta < -np.pi * 0.0278:
         #     reward -= np.abs((theta + np.pi * 0.0278) / (np.pi * 0.0278)) * 0.001
-        if np.abs(psi) > np.pi / 18:
-            self.psi = np.abs((np.abs(psi) - np.pi / 18)) * 0.01
+        # if np.abs(psi) > np.pi / 18:
+        #     self.psi = np.abs((np.abs(psi) - np.pi / 18)) * 0.01
 
-        # if np.abs(alpha) > 0.349:
-        #     reward -= (np.abs(alpha) - 0.349) / 0.349 * 0.05
-        # if np.abs(beta) > 0.0872:
-        #     reward -= (np.abs(beta) - 0.0872) / 0.0872 * 0.05
+        if np.abs(alpha) > 0.349:
+            self.alpha = (np.abs(alpha) - 0.349) / 0.349 * 0.03
+        if np.abs(beta) > 0.0872:
+            self.beta = (np.abs(beta) - 0.0872) / 0.0872 * 0.03
+
+        # 动作惩罚
+        if self.simTime > 0.5:
+            actions = np.array(self.previous_actions)
+            action_diffs = np.diff(actions, axis=0)
+            action_penalty = np.sum(np.abs(action_diffs))*0.0008
+            self.action_penalty = action_penalty
+        else:
+            self.action_penalty = 0
+        # print(f"Debug: action_penalty{action_penalty}")
 
         # reward = reward * np.exp(-self.simTime / 50)
-        reward = -self.phi - self.psi
+        reward = -self.height -self.alpha - self.beta - self.action_penalty
         reward = reward * (150 - self.simTime) / 150
         
         # # 导航点奖励
@@ -159,13 +173,11 @@ class GridWorldEnv(gym.Env):
         reward += 0.03
         if self.simTime > 30:
             reward += 0.03
-        # if not self.observation_space.contains(self._get_obs()):
-        #     reward -= 1000
-        self.reward = reward
         return reward
 
     def step(self, action, time_step=0.01):
         self.simTime += time_step
+        self.current_action = action
         action = self.reflect_action(action)
         self._agent_state = np.array(self.f16.update(
             pyf16.Control(
@@ -192,6 +204,10 @@ class GridWorldEnv(gym.Env):
         if self.simTime > 150:
             terminated = True
         # terminated = self.simTime > 50 or len(self.waypoints) == 0
+
+        if len(self.previous_actions) >= 10:
+            self.previous_actions.pop(0)
+        self.previous_actions.append(self.current_action)
 
         if self.render_mode == "human":
             self._render_frame()
