@@ -153,7 +153,7 @@ class GridWorldEnv(gym.Env):
         if self.simTime > 0.5:
             actions = np.array(self.previous_actions)
             action_diffs = np.diff(actions, axis=0)
-            action_penalty = np.sum(np.abs(action_diffs))*0.0015
+            action_penalty = np.sum(np.abs(action_diffs))*0.002
             self.action_penalty = action_penalty
         else:
             self.action_penalty = 0
@@ -170,7 +170,7 @@ class GridWorldEnv(gym.Env):
         # reward -= np.linalg.norm(self._agent_state[-3:], ord=2) / 15000
 
         # 时间奖励
-        reward += 0.07
+        reward += 0.08
         if self.simTime > 30:
             reward += 0.05
         return reward

@@ -41,11 +41,11 @@ log_path="./logs/"
 #                              log_path=log_path, eval_freq=10000,
 #                              deterministic=True, render=False)
 eval_callback = BestThreeEvalCallback(eval_env, best_model_save_path=log_path,
-                                      log_path=log_path, eval_freq=10000,
+                                      log_path=log_path, eval_freq=20000,
                                       deterministic=True, render=False)
 
 model = PPO("MlpPolicy", train_env, verbose=1, device='cpu', tensorboard_log="./logs/tenorboard/")
-model.learn(total_timesteps=5000_000, progress_bar=True, callback=[eval_callback])
+model.learn(total_timesteps=15000_000, progress_bar=True, callback=[eval_callback])
 
 # 保存训练结束的模型
 model.save(log_path + "final_model")

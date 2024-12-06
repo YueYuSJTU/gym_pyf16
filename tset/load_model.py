@@ -13,7 +13,7 @@ log_path="./logs/"
 # 读取模型选择
 # model_name = "best_model"
 # model_name = "final_model"
-model_name = "newENV_150s"
+model_name = "best_model_1736.615260656178"
 
 skipStep = 5
 skipTimes = 3
@@ -28,7 +28,7 @@ env_id = "gym_pyf16_env/GridWorld-v0"
 # vec_env = DummyVecEnv([lambda: gym.make(env_id)])
 vec_env = DummyVecEnv([lambda: SkipObsWrapper(gym.make(env_id), skip_step=skipStep, skip_times=skipTimes)])
 vec_env.seed(seed)
-vec_env = VecNormalize.load(log_path + "final_train_env", vec_env)
+vec_env = VecNormalize.load(log_path + "best_train_env", vec_env)
 vec_env.training = False
 vec_env.norm_reward = False
 
